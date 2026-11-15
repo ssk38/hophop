@@ -1,5 +1,5 @@
-const STORAGE_KEY = 'geometryDashTop10';
-const LEGACY_BEST_KEY = 'geometryDashBest';
+const STORAGE_KEY = 'hophopTop10';
+const LEGACY_BEST_KEY = 'hophopBest';
 
 export function loadHighScores() {
   let savedScores = [];

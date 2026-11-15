@@ -45,7 +45,7 @@ const state = {
   spawnTimer: 0.8,
   score: 0,
   speedProgress: 0,
-  best: Number(localStorage.getItem('geometryDashBest') || 0),
+  best: Number(localStorage.getItem('hophopBest') || 0),
   lastTime: 0,
   introGrace: 1.5,
   stageIndex: 0,
@@ -85,7 +85,7 @@ function setOverlay(message, buttonText, mode = 'default') {
   leaderboardPanel.hidden = true;
   overlayTitle.textContent = mode === 'clear'
     ? 'ALL STAGES CLEAR!'
-    : mode === 'record' ? 'TOP 3 RECORD!' : 'GEOMETRY DASH';
+    : mode === 'record' ? 'TOP 3 RECORD!' : 'HOPHOP';
   overlayMessage.textContent = message;
   playBtn.textContent = buttonText;
   leaderboardBtn.hidden = false;
@@ -109,7 +109,7 @@ function saveRunScore() {
   const result = recordHighScore(state.score);
   state.highScores = result.scores;
   state.best = Math.max(state.best, state.highScores[0]?.score || 0);
-  localStorage.setItem('geometryDashBest', String(state.best));
+  localStorage.setItem('hophopBest', String(state.best));
   updateHud();
   return result.rank;
 }
@@ -135,7 +135,7 @@ function startGame() {
   state.stageIndex = 0;
   state.score = 0;
   state.lives = 3;
-  state.best = Number(localStorage.getItem('geometryDashBest') || 0);
+  state.best = Number(localStorage.getItem('hophopBest') || 0);
   loadStage(0);
   hideOverlay();
   startMusic();
@@ -200,7 +200,7 @@ function continueFromCheckpoint() {
   }
 
   state.best = Math.max(state.best, Math.floor(state.score));
-  localStorage.setItem('geometryDashBest', String(state.best));
+  localStorage.setItem('hophopBest', String(state.best));
   state.obstacles = [];
   state.enemies = [];
   state.items = [];

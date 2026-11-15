@@ -1,6 +1,6 @@
 # Hophop
 
-A fast-paced browser platform game inspired by Geometry Dash, with four themed stages.
+A fast-paced browser platform game with four themed stages, fast reactions, and a neon obstacle-runner feel.
 
 ## Live demo
 
