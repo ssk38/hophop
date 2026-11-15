@@ -122,6 +122,7 @@ function loadStage(index) {
   state.spawnTimer = 0.7;
   state.introGrace = 1.5;
   resetPlayer();
+  if (index > 0) player.y -= config.nextStageStartHeight;
   updateHud();
 }
 

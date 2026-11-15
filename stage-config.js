@@ -3,6 +3,7 @@ export const GAME_CONFIG = Object.freeze({
   jumpForce: 620,
   baseSpeed: 430,
   groundOffset: 68,
+  nextStageStartHeight: 60,
 });
 
 // Keep every stage's look, hazard density, and enemy frequency together here.
