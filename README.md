@@ -7,9 +7,12 @@ A fast-paced browser platform game inspired by Geometry Dash, with four themed s
 - Press Space, W, or the Up arrow to jump.
 - Jump over floor spikes and avoid ceiling spikes.
 - Avoid moving enemies; contact ends the run.
+- Star power blinks and grants three seconds of protection from enemies and spikes.
 - Collect items for temporary speed, slow, shrink, or star effects.
 - Earn 500 points for a speed-up item and 100 points for every other item. Pickup points float above the player.
-- Reach each portal to advance. The first portal appears after 15 seconds; missed portals return every 3 seconds.
+- Reach each randomly positioned, enlarged portal to advance. The first portal appears after 10 seconds; missed portals return every 3 seconds.
+- Stage transitions show a three-second stage-number countdown while the BGM continues with audio cues.
+- Each stage uses a different background pattern, and collisions trigger a particle burst.
 - Clear all four stages to reach the victory screen.
 - View your saved Top 10 scores from the start or end screen; Top 3 runs are highlighted at game over.
 
@@ -22,6 +25,7 @@ A fast-paced browser platform game inspired by Geometry Dash, with four themed s
 - `leaderboard.js`: persistent Top 10 score storage and rendering.
 - `item-score.js`: points awarded by each item type.
 - `enemies.js`: moving enemy creation, motion, and collision checks.
+- `death-effects.js`: player death-burst particle simulation.
 
 ## Run locally
 

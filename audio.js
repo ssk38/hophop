@@ -64,6 +64,21 @@ export function createAudio(state) {
     playTone(680, 0.08, 'triangle', 0.05, 340);
   }
 
+  function playStageTransition(stageNumber) {
+    ensureAudio();
+    if (!audio.ctx || !audio.master) return;
+    const root = 330 + stageNumber * 35;
+    playTone(root, 0.26, 'triangle', 0.12);
+    playTone(root * 1.5, 0.34, 'sine', 0.08, root * 2);
+  }
+
+  function playCountdownTick(remaining) {
+    ensureAudio();
+    if (!audio.ctx || !audio.master) return;
+    const frequency = remaining === 0 ? 880 : 520 + (3 - remaining) * 90;
+    playTone(frequency, remaining === 0 ? 0.3 : 0.12, 'square', remaining === 0 ? 0.1 : 0.06);
+  }
+
   function startMusic() {
     ensureAudio();
     if (!audio.ctx || !audio.master || audio.musicStarted) return;
@@ -73,7 +88,7 @@ export function createAudio(state) {
   }
 
   function updateMusic() {
-    if (!audio.ctx || !audio.musicGain || !audio.musicStarted || state.status !== 'playing') return;
+    if (!audio.ctx || !audio.musicGain || !audio.musicStarted || !['playing', 'transition'].includes(state.status)) return;
     const beatDuration = 0.23;
 
     while (audio.nextBeatAt < audio.ctx.currentTime + 0.2) {
@@ -88,5 +103,5 @@ export function createAudio(state) {
     }
   }
 
-  return { audio, ensureAudio, playJumpSound, startMusic, updateMusic };
+  return { audio, ensureAudio, playJumpSound, playStageTransition, playCountdownTick, startMusic, updateMusic };
 }

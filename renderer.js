@@ -8,12 +8,7 @@ export function createRenderer({ canvas, ctx, state, player, getCurrentStage, gr
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    for (let i = 0; i < 70; i += 1) {
-      const x = (i * 79 + state.score * 3) % (canvas.width + 20);
-      const y = (i * 53) % (canvas.height * 0.6);
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.fillRect(x, y, 2, 2);
-    }
+    drawBackgroundPattern(stage.backgroundPattern || 'stars');
 
     ctx.fillStyle = stage.ground;
     ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
@@ -29,7 +24,70 @@ export function createRenderer({ canvas, ctx, state, player, getCurrentStage, gr
     ctx.stroke();
   }
 
+  function drawBackgroundPattern(pattern) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(180, 230, 255, 0.12)';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 1;
+
+    if (pattern === 'stars') {
+      for (let i = 0; i < 70; i += 1) {
+        const x = (i * 79 + state.score * 3) % (canvas.width + 20);
+        const y = (i * 53) % (canvas.height * 0.6);
+        ctx.fillRect(x, y, 2, 2);
+      }
+    } else if (pattern === 'grid') {
+      const offset = (state.score * 3) % 48;
+      for (let x = -48 + offset; x < canvas.width; x += 48) {
+        ctx.beginPath();
+        ctx.moveTo(x, 32);
+        ctx.lineTo(x, groundY);
+        ctx.stroke();
+      }
+      for (let y = 80; y < groundY; y += 48) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+    } else if (pattern === 'waves') {
+      for (let row = 0; row < 7; row += 1) {
+        const baseY = 90 + row * 54;
+        ctx.beginPath();
+        for (let x = 0; x <= canvas.width; x += 8) {
+          const y = baseY + Math.sin(x * 0.018 + state.score * 0.035 + row) * 13;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    } else {
+      const size = 28;
+      const offset = (state.score * 0.6) % (size * 1.5);
+      for (let row = -1; row < Math.ceil(groundY / (size * 1.5)); row += 1) {
+        for (let col = -1; col < Math.ceil(canvas.width / (size * 2)); col += 1) {
+          const centerX = col * size * 2 + (row % 2) * size - offset;
+          const centerY = row * size * 1.5 + 32;
+          ctx.beginPath();
+          for (let side = 0; side < 6; side += 1) {
+            const angle = (Math.PI / 3) * side;
+            const x = centerX + Math.cos(angle) * size;
+            const y = centerY + Math.sin(angle) * size;
+            if (side === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.restore();
+  }
+
   function drawPlayer() {
+    ctx.save();
+    const blinkVisible = player.starTimer <= 0 || Math.floor(player.starTimer * 12) % 2 === 0;
+    ctx.globalAlpha = blinkVisible ? 1 : 0.25;
     const sizeW = player.starTimer > 0 ? player.w + 8 : player.w;
     const sizeH = player.starTimer > 0 ? player.h + 8 : player.h;
     const drawX = player.x + (player.w - sizeW) / 2;
@@ -49,6 +107,7 @@ export function createRenderer({ canvas, ctx, state, player, getCurrentStage, gr
     ctx.fillRect(drawX + 18, drawY + 7, 5, 5);
     ctx.fillStyle = '#ff4db8';
     ctx.fillRect(drawX + 8, drawY + 18, 14, 4);
+    ctx.restore();
   }
 
   function drawPlatform(obstacle) {
@@ -170,14 +229,14 @@ export function createRenderer({ canvas, ctx, state, player, getCurrentStage, gr
     ctx.save();
     ctx.translate(state.portal.x + state.portal.w / 2, state.portal.y + state.portal.h / 2);
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.fillRect(-30, -40, 60, 80);
+    ctx.fillRect(-40, -56, 80, 112);
     ctx.strokeStyle = stage.portal;
     ctx.lineWidth = 6;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 24, 40, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 34, 52, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.fillStyle = stage.portal;
-    ctx.fillRect(-8, -35, 16, 70);
+    ctx.fillRect(-10, -47, 20, 94);
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'center';
@@ -200,14 +259,48 @@ export function createRenderer({ canvas, ctx, state, player, getCurrentStage, gr
     }
   }
 
+  function drawDeathBurst() {
+    for (const particle of state.deathParticles) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
+      ctx.translate(particle.x, particle.y);
+      ctx.rotate(particle.rotation);
+      ctx.fillStyle = particle.color;
+      ctx.shadowColor = particle.color;
+      ctx.shadowBlur = 12;
+      ctx.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size);
+      ctx.restore();
+    }
+  }
+
+  function drawStageTransition() {
+    if (state.status !== 'transition') return;
+    const countdown = Math.max(1, Math.ceil(state.transitionTimer));
+    ctx.save();
+    ctx.fillStyle = 'rgba(4, 9, 20, 0.48)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.textAlign = 'center';
+    ctx.shadowColor = getCurrentStage().portal;
+    ctx.shadowBlur = 22;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px Arial';
+    ctx.fillText(`STAGE ${state.stageIndex + 1}`, canvas.width / 2, canvas.height / 2 - 24);
+    ctx.fillStyle = getCurrentStage().portal;
+    ctx.font = 'bold 82px Arial';
+    ctx.fillText(String(countdown), canvas.width / 2, canvas.height / 2 + 68);
+    ctx.restore();
+  }
+
   function draw() {
     drawBackground();
     for (const obstacle of state.obstacles) drawObstacle(obstacle);
     for (const enemy of state.enemies) drawEnemy(enemy);
     for (const item of state.items) drawItem(item);
     drawPortal();
-    drawPlayer();
+    if (state.status !== 'dying') drawPlayer();
+    drawDeathBurst();
     drawScorePopups();
+    drawStageTransition();
   }
 
   return { draw };

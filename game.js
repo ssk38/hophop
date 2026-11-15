@@ -4,6 +4,7 @@ import { loadHighScores, recordHighScore, renderHighScores } from './leaderboard
 import { createRenderer } from './renderer.js';
 import { getItemPoints } from './item-score.js';
 import { createEnemy, hasEnemyCollision, updateEnemies } from './enemies.js';
+import { createDeathBurst, updateDeathBurst } from './death-effects.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -47,10 +48,13 @@ const state = {
   introGrace: 1.5,
   stageIndex: 0,
   portal: null,
-  portalCooldown: 15,
+  portalCooldown: 10,
+  transitionTimer: 0,
+  deathTimer: 0,
+  deathParticles: [],
   highScores: loadHighScores(),
 };
-const { audio, playJumpSound, startMusic, updateMusic } = createAudio(state);
+const { audio, playJumpSound, playStageTransition, playCountdownTick, startMusic, updateMusic } = createAudio(state);
 const { draw } = createRenderer({ canvas, ctx, state, player, getCurrentStage, groundY: config.groundY });
 
 function resetPlayer() {
@@ -114,7 +118,7 @@ function loadStage(index) {
   state.scorePopups = [];
   state.speedProgress = 0;
   state.portal = null;
-  state.portalCooldown = 15;
+  state.portalCooldown = 10;
   state.spawnTimer = 0.7;
   state.introGrace = 1.5;
   resetPlayer();
@@ -135,7 +139,11 @@ function nextStage() {
   if (state.stageIndex < STAGES.length - 1) {
     state.stageIndex += 1;
     loadStage(state.stageIndex);
-    state.status = 'playing';
+    state.introGrace = 0;
+    state.transitionTimer = 3;
+    state.transitionCountdown = 3;
+    state.status = 'transition';
+    playStageTransition(state.stageIndex + 1);
     return;
   }
 
@@ -147,6 +155,14 @@ function nextStage() {
 }
 
 function gameOver() {
+  if (state.status !== 'playing') return;
+  state.status = 'dying';
+  state.deathTimer = 0.85;
+  state.deathParticles = createDeathBurst(player);
+  player.starTimer = 0;
+}
+
+function finishGameOver() {
   state.status = 'gameover';
   const rank = saveRunScore();
   audio.musicStarted = false;
@@ -229,7 +245,7 @@ function spawnObstacle() {
   };
   state.obstacles.push(ceilingSpike);
 
-  if (Math.random() < stage.enemyChance) {
+  if (stage.enemyChance > 0 && Math.random() < stage.enemyChance) {
     state.enemies.push(createEnemy({ canvasWidth: canvas.width, groundY: config.groundY, randomBetween }));
   }
 
@@ -272,7 +288,11 @@ function checkCollisions() {
   for (let i = state.obstacles.length - 1; i >= 0; i -= 1) {
     const obstacle = state.obstacles[i];
 
-    if ((obstacle.type === 'spike' || obstacle.type === 'ceilingSpike') && rectsIntersect(playerBox, obstacle)) {
+    if (
+      player.starTimer <= 0 &&
+      (obstacle.type === 'spike' || obstacle.type === 'ceilingSpike') &&
+      rectsIntersect(playerBox, obstacle)
+    ) {
       gameOver();
       return;
     }
@@ -282,13 +302,30 @@ function checkCollisions() {
     }
   }
 
-  if (hasEnemyCollision(state.enemies, playerBox, rectsIntersect)) {
+  if (player.starTimer <= 0 && hasEnemyCollision(state.enemies, playerBox, rectsIntersect)) {
     gameOver();
     return;
   }
 }
 
 function update(dt) {
+  if (state.status === 'transition') {
+    const previousCountdown = Math.ceil(state.transitionTimer);
+    state.transitionTimer = Math.max(0, state.transitionTimer - dt);
+    const nextCountdown = Math.ceil(state.transitionTimer);
+    if (nextCountdown < previousCountdown) playCountdownTick(nextCountdown);
+    updateMusic();
+    if (state.transitionTimer === 0) state.status = 'playing';
+    return;
+  }
+
+  if (state.status === 'dying') {
+    updateDeathBurst(state.deathParticles, dt);
+    state.deathTimer = Math.max(0, state.deathTimer - dt);
+    if (state.deathTimer === 0) finishGameOver();
+    return;
+  }
+
   if (state.status !== 'playing') {
     return;
   }
@@ -351,10 +388,10 @@ function update(dt) {
     state.portalCooldown -= dt;
     if (state.portalCooldown <= 0) {
       state.portal = {
-        x: canvas.width - 120,
-        y: stage.portalY,
-        w: 52,
-        h: 90,
+        x: canvas.width + randomBetween(40, 260),
+        y: randomBetween(70, config.groundY - 132),
+        w: 72,
+        h: 112,
       };
     }
   }
@@ -394,7 +431,7 @@ function update(dt) {
       } else if (item.type === 'shrink') {
         player.shrinkTimer = 5;
       } else if (item.type === 'star') {
-        player.starTimer = 6;
+        player.starTimer = 3;
       } else if (item.type === 'slow') {
         player.slowTimer = 4;
       }
