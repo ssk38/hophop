@@ -1,7 +1,14 @@
 export function createDeathBurst(player, random = Math.random) {
-  const centerX = player.x + player.w / 2;
-  const centerY = player.y + player.h / 2;
-  const colors = ['#ffd84d', '#ff4db8', '#7df9ff', '#ffffff'];
+  return createBurst(player, ['#ffd84d', '#ff4db8', '#7df9ff', '#ffffff'], random);
+}
+
+export function createEnemyBurst(enemy, random = Math.random) {
+  return createBurst(enemy, ['#ff4d79', '#ffbe5c', '#ffffff', '#ff90d8'], random);
+}
+
+function createBurst(entity, colors, random) {
+  const centerX = entity.x + entity.w / 2;
+  const centerY = entity.y + entity.h / 2;
   return Array.from({ length: 28 }, (_, index) => {
     const angle = (Math.PI * 2 * index) / 28 + (random() - 0.5) * 0.35;
     const speed = 120 + random() * 320;

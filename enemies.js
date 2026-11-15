@@ -25,3 +25,14 @@ export function updateEnemies(enemies, moveSpeed, deltaTime) {
 export function hasEnemyCollision(enemies, playerBox, intersects) {
   return enemies.some((enemy) => intersects(playerBox, enemy));
 }
+
+export function resolveStarEnemyHits(enemies, playerBox, intersects, createBurst) {
+  const destroyed = [];
+  for (let index = enemies.length - 1; index >= 0; index -= 1) {
+    const enemy = enemies[index];
+    if (!intersects(playerBox, enemy)) continue;
+    destroyed.push({ enemy, particles: createBurst(enemy) });
+    enemies.splice(index, 1);
+  }
+  return { points: destroyed.length * 100, destroyed };
+}

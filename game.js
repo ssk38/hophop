@@ -2,9 +2,9 @@ import { GAME_CONFIG, STAGES } from './stage-config.js';
 import { createAudio } from './audio.js';
 import { loadHighScores, recordHighScore, renderHighScores } from './leaderboard.js';
 import { createRenderer } from './renderer.js';
-import { getItemPoints } from './item-score.js';
-import { createEnemy, hasEnemyCollision, updateEnemies } from './enemies.js';
-import { createDeathBurst, updateDeathBurst } from './death-effects.js';
+import { getItemPoints, PORTAL_POINTS } from './item-score.js';
+import { createEnemy, hasEnemyCollision, resolveStarEnemyHits, updateEnemies } from './enemies.js';
+import { createDeathBurst, createEnemyBurst, updateDeathBurst } from './death-effects.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -52,6 +52,7 @@ const state = {
   transitionTimer: 0,
   deathTimer: 0,
   deathParticles: [],
+  enemyParticles: [],
   highScores: loadHighScores(),
 };
 const { audio, playJumpSound, playStageTransition, playCountdownTick, startMusic, updateMusic } = createAudio(state);
@@ -137,9 +138,11 @@ function startGame() {
 }
 
 function nextStage() {
+  state.score += PORTAL_POINTS;
   if (state.stageIndex < STAGES.length - 1) {
     state.stageIndex += 1;
     loadStage(state.stageIndex);
+    state.scorePopups.push(createScorePopup(PORTAL_POINTS));
     state.introGrace = 0;
     state.transitionTimer = 3;
     state.transitionCountdown = 3;
@@ -148,11 +151,16 @@ function nextStage() {
     return;
   }
 
+  state.scorePopups.push(createScorePopup(PORTAL_POINTS));
   state.status = 'cleared';
   saveRunScore();
   audio.musicStarted = false;
   updateHud();
   setOverlay(`You cleared all 4 stages! Score ${Math.floor(state.score)}`, 'Play Again', 'clear');
+}
+
+function createScorePopup(points, x = player.x + player.w / 2, y = player.y - 12) {
+  return { x, y, points, timeLeft: 1.15, duration: 1.15 };
 }
 
 function gameOver() {
@@ -163,15 +171,18 @@ function gameOver() {
   player.starTimer = 0;
 }
 
-function finishGameOver() {
-  state.status = 'gameover';
-  const rank = saveRunScore();
-  audio.musicStarted = false;
+function continueFromCheckpoint() {
+  const checkpointStage = state.stageIndex;
+  state.best = Math.max(state.best, Math.floor(state.score));
+  localStorage.setItem('geometryDashBest', String(state.best));
+  loadStage(checkpointStage);
+  state.introGrace = 0;
+  state.deathParticles = [];
+  state.enemyParticles = [];
+  state.transitionTimer = 3;
+  state.transitionCountdown = 3;
+  state.status = 'transition';
   updateHud();
-  const message = rank && rank <= 3
-    ? `${rank}位入賞！  Score ${Math.floor(state.score)}`
-    : `Game Over — Score ${Math.floor(state.score)}`;
-  setOverlay(message, 'Restart', rank && rank <= 3 ? 'record' : 'default');
 }
 
 function jump() {
@@ -303,7 +314,16 @@ function checkCollisions() {
     }
   }
 
-  if (player.starTimer <= 0 && hasEnemyCollision(state.enemies, playerBox, rectsIntersect)) {
+  if (player.starTimer > 0) {
+    const result = resolveStarEnemyHits(state.enemies, playerBox, rectsIntersect, createEnemyBurst);
+    if (result.points > 0) {
+      state.score += result.points;
+      for (const { enemy, particles } of result.destroyed) {
+        state.scorePopups.push(createScorePopup(100, enemy.x + enemy.w / 2, enemy.y));
+        state.enemyParticles.push(...particles);
+      }
+    }
+  } else if (hasEnemyCollision(state.enemies, playerBox, rectsIntersect)) {
     gameOver();
     return;
   }
@@ -323,13 +343,15 @@ function update(dt) {
   if (state.status === 'dying') {
     updateDeathBurst(state.deathParticles, dt);
     state.deathTimer = Math.max(0, state.deathTimer - dt);
-    if (state.deathTimer === 0) finishGameOver();
+    if (state.deathTimer === 0) continueFromCheckpoint();
     return;
   }
 
   if (state.status !== 'playing') {
     return;
   }
+
+  updateDeathBurst(state.enemyParticles, dt);
 
   state.score += dt * 14;
   state.speedProgress += dt * 14;
@@ -420,13 +442,7 @@ function update(dt) {
     if (distance < 50) {
       const points = getItemPoints(item.type);
       state.score += points;
-      state.scorePopups.push({
-        x: player.x + player.w / 2,
-        y: player.y - 12,
-        points,
-        timeLeft: 1.15,
-        duration: 1.15,
-      });
+      state.scorePopups.push(createScorePopup(points));
       if (item.type === 'speed') {
         player.boostTimer = 5;
       } else if (item.type === 'shrink') {

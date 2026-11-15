@@ -260,7 +260,7 @@ export function createRenderer({ canvas, ctx, state, player, getCurrentStage, gr
   }
 
   function drawDeathBurst() {
-    for (const particle of state.deathParticles) {
+    for (const particle of [...state.deathParticles, ...state.enemyParticles]) {
       ctx.save();
       ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
       ctx.translate(particle.x, particle.y);
