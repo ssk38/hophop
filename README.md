@@ -1,4 +1,4 @@
-# Geometry Dash Mini
+# Hophop
 
 A fast-paced browser platform game inspired by Geometry Dash, with four themed stages.
 
@@ -30,6 +30,10 @@ A fast-paced browser platform game inspired by Geometry Dash, with four themed s
 - `item-score.js`: points awarded by each item type.
 - `enemies.js`: moving enemy creation, motion, and collision checks.
 - `death-effects.js`: player death-burst particle simulation.
+
+## License
+
+This project is licensed under the BSD 3-Clause License. See the LICENSE file for details.
 
 ## Run locally
 
