@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Geometry Dash Mini</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="game-shell">
+      <div class="hud">
+        <div id="score">SCORE 0</div>
+        <div id="best">BEST 0</div>
+      </div>
+
+      <canvas id="gameCanvas" width="960" height="540" aria-label="Geometry Dash style mini game"></canvas>
+
+      <div id="overlay" class="overlay visible">
+        <div class="panel">
+          <h1 id="overlayTitle">GEOMETRY DASH</h1>
+          <p id="overlayMessage">Press Space or click to start</p>
+          <button id="playBtn" type="button">Start</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>
