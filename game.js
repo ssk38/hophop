@@ -3,6 +3,7 @@ import { createAudio } from './audio.js';
 import { loadHighScores, recordHighScore, renderHighScores } from './leaderboard.js';
 import { createRenderer } from './renderer.js';
 import { getItemPoints } from './item-score.js';
+import { createEnemy, hasEnemyCollision, updateEnemies } from './enemies.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -35,6 +36,7 @@ const player = {
 const state = {
   status: 'ready',
   obstacles: [],
+  enemies: [],
   items: [],
   scorePopups: [],
   spawnTimer: 0.8,
@@ -107,6 +109,7 @@ function saveRunScore() {
 function loadStage(index) {
   state.stageIndex = index;
   state.obstacles = [];
+  state.enemies = [];
   state.items = [];
   state.scorePopups = [];
   state.speedProgress = 0;
@@ -226,6 +229,10 @@ function spawnObstacle() {
   };
   state.obstacles.push(ceilingSpike);
 
+  if (Math.random() < stage.enemyChance) {
+    state.enemies.push(createEnemy({ canvasWidth: canvas.width, groundY: config.groundY, randomBetween }));
+  }
+
   if (Math.random() < 0.6) {
     const itemTypes = ['speed', 'shrink', 'star', 'slow'];
     const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
@@ -273,6 +280,11 @@ function checkCollisions() {
     if (obstacle.x + obstacle.w < -60) {
       state.obstacles.splice(i, 1);
     }
+  }
+
+  if (hasEnemyCollision(state.enemies, playerBox, rectsIntersect)) {
+    gameOver();
+    return;
   }
 }
 
@@ -350,6 +362,8 @@ function update(dt) {
   for (const obstacle of state.obstacles) {
     obstacle.x -= moveSpeed * dt;
   }
+
+  updateEnemies(state.enemies, moveSpeed, dt);
 
   if (state.portal) {
     state.portal.x -= moveSpeed * dt;

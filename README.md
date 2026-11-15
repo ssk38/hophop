@@ -6,6 +6,7 @@ A fast-paced browser platform game inspired by Geometry Dash, with four themed s
 
 - Press Space, W, or the Up arrow to jump.
 - Jump over floor spikes and avoid ceiling spikes.
+- Avoid moving enemies; contact ends the run.
 - Collect items for temporary speed, slow, shrink, or star effects.
 - Earn 500 points for a speed-up item and 100 points for every other item. Pickup points float above the player.
 - Reach each portal to advance. The first portal appears after 15 seconds; missed portals return every 3 seconds.
@@ -20,6 +21,7 @@ A fast-paced browser platform game inspired by Geometry Dash, with four themed s
 - `audio.js`: synthesized music and sound effects.
 - `leaderboard.js`: persistent Top 10 score storage and rendering.
 - `item-score.js`: points awarded by each item type.
+- `enemies.js`: moving enemy creation, motion, and collision checks.
 
 ## Run locally
 

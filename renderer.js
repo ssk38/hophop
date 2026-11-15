@@ -94,6 +94,34 @@ export function createRenderer({ canvas, ctx, state, player, getCurrentStage, gr
     else drawFloorSpikes(obstacle);
   }
 
+  function drawEnemy(enemy) {
+    ctx.save();
+    ctx.translate(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
+    ctx.rotate(Math.sin(enemy.phase) * 0.12);
+    ctx.shadowColor = '#ff4d79';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = '#ff4d79';
+    ctx.beginPath();
+    ctx.moveTo(-enemy.w * 0.55, 0);
+    ctx.lineTo(-enemy.w * 0.25, -enemy.h * 0.5);
+    ctx.lineTo(0, -enemy.h * 0.34);
+    ctx.lineTo(enemy.w * 0.3, -enemy.h * 0.52);
+    ctx.lineTo(enemy.w * 0.55, 0);
+    ctx.lineTo(enemy.w * 0.3, enemy.h * 0.48);
+    ctx.lineTo(0, enemy.h * 0.32);
+    ctx.lineTo(-enemy.w * 0.3, enemy.h * 0.48);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff4a9';
+    ctx.fillRect(-10, -5, 6, 8);
+    ctx.fillRect(4, -5, 6, 8);
+    ctx.fillStyle = '#32152a';
+    ctx.fillRect(-5, 9, 10, 4);
+    ctx.restore();
+  }
+
   function drawItem(item) {
     ctx.save();
     ctx.translate(item.x + item.r, item.y + item.r + Math.sin(item.bob) * 4);
@@ -175,6 +203,7 @@ export function createRenderer({ canvas, ctx, state, player, getCurrentStage, gr
   function draw() {
     drawBackground();
     for (const obstacle of state.obstacles) drawObstacle(obstacle);
+    for (const enemy of state.enemies) drawEnemy(enemy);
     for (const item of state.items) drawItem(item);
     drawPortal();
     drawPlayer();
