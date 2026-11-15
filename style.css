@@ -73,6 +73,14 @@ canvas {
   display: grid;
 }
 
+[hidden] {
+  display: none !important;
+}
+
+.overlay.leaderboard-mode #mainPanel {
+  display: none;
+}
+
 .overlay.clear-screen {
   background: radial-gradient(circle, rgba(30, 95, 76, 0.82), rgba(4, 9, 20, 0.88));
 }
@@ -104,6 +112,21 @@ canvas {
   text-shadow: 0 0 18px rgba(113, 247, 162, 0.75);
 }
 
+.record-screen {
+  background: radial-gradient(circle, rgba(112, 78, 20, 0.82), rgba(4, 9, 20, 0.9));
+}
+
+.record-screen .panel {
+  border-color: rgba(255, 216, 77, 0.95);
+  box-shadow: 0 0 32px rgba(255, 216, 77, 0.55), 0 0 72px rgba(255, 150, 40, 0.22);
+  animation: clear-pop 0.45s ease-out both;
+}
+
+.record-screen .panel h1 {
+  color: var(--yellow);
+  text-shadow: 0 0 18px rgba(255, 216, 77, 0.8);
+}
+
 .clear-screen button {
   background: linear-gradient(135deg, var(--green), var(--yellow));
   box-shadow: 0 0 20px rgba(113, 247, 162, 0.55);
@@ -118,6 +141,77 @@ canvas {
   margin: 0 0 20px;
   font-size: 1.05rem;
   color: #dfeaf8;
+  white-space: pre-line;
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.secondary-button {
+  color: var(--text);
+  background: linear-gradient(135deg, #343d60, #222b46);
+  box-shadow: 0 0 14px rgba(125, 249, 255, 0.18);
+}
+
+.leaderboard-panel {
+  width: min(90%, 520px);
+  max-height: 92%;
+  overflow: auto;
+  border-color: rgba(125, 249, 255, 0.65);
+  box-shadow: 0 0 28px rgba(125, 249, 255, 0.22);
+}
+
+.leaderboard-panel h1 {
+  color: var(--accent);
+}
+
+.leaderboard-list {
+  display: grid;
+  gap: 6px;
+  margin: 18px 0 22px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr 4rem;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid rgba(125, 249, 255, 0.14);
+  border-radius: 9px;
+  background: rgba(125, 249, 255, 0.06);
+}
+
+.leaderboard-row:first-child {
+  border-color: rgba(255, 216, 77, 0.55);
+  background: rgba(255, 216, 77, 0.1);
+}
+
+.leaderboard-rank {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.leaderboard-score {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.leaderboard-date {
+  color: rgba(237, 247, 255, 0.65);
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.leaderboard-empty {
+  padding: 16px;
+  color: rgba(237, 247, 255, 0.72);
 }
 
 button {

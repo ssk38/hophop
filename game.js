@@ -1,3 +1,9 @@
+import { GAME_CONFIG, STAGES } from './stage-config.js';
+import { createAudio } from './audio.js';
+import { loadHighScores, recordHighScore, renderHighScores } from './leaderboard.js';
+import { createRenderer } from './renderer.js';
+import { getItemPoints } from './item-score.js';
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
@@ -6,13 +12,12 @@ const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlayTitle');
 const overlayMessage = document.getElementById('overlayMessage');
 const playBtn = document.getElementById('playBtn');
+const leaderboardBtn = document.getElementById('leaderboardBtn');
+const leaderboardPanel = document.getElementById('leaderboardPanel');
+const leaderboardList = document.getElementById('leaderboardList');
+const leaderboardBackBtn = document.getElementById('leaderboardBackBtn');
 
-const config = {
-  gravity: 1900,
-  jumpForce: 620,
-  baseSpeed: 430,
-  groundY: canvas.height - 68,
-};
+const config = { ...GAME_CONFIG, groundY: canvas.height - GAME_CONFIG.groundOffset };
 
 const player = {
   x: 120,
@@ -27,93 +32,11 @@ const player = {
   slowTimer: 0,
 };
 
-const stageConfigs = [
-  {
-    name: 'Stage 1',
-    bgTop: '#16152f',
-    bgMid: '#0d1937',
-    bgBottom: '#070d1d',
-    ground: '#0b1328',
-    ceiling: '#0f1d31',
-    platform: '#71f7a2',
-    floorSpike: '#ff4db8',
-    ceilSpike: '#7df9ff',
-    portal: '#ffd84d',
-    platformChance: 0.5,
-    floorSpikeMin: 4,
-    floorSpikeMax: 8,
-    ceilingMin: 3,
-    ceilingMax: 6,
-    speedMultiplier: 1,
-    portalY: 340,
-    portalLabel: 'A',
-  },
-  {
-    name: 'Stage 2',
-    bgTop: '#132c2e',
-    bgMid: '#0d3d41',
-    bgBottom: '#071d20',
-    ground: '#0a1f22',
-    ceiling: '#12363d',
-    platform: '#7df9ff',
-    floorSpike: '#ffbe5c',
-    ceilSpike: '#8df5ff',
-    portal: '#7df9ff',
-    platformChance: 0.7,
-    floorSpikeMin: 5,
-    floorSpikeMax: 9,
-    ceilingMin: 4,
-    ceilingMax: 7,
-    speedMultiplier: 1.15,
-    portalY: 290,
-    portalLabel: 'B',
-  },
-  {
-    name: 'Stage 3',
-    bgTop: '#2b1730',
-    bgMid: '#3a1f44',
-    bgBottom: '#120d21',
-    ground: '#1d1028',
-    ceiling: '#2c1e38',
-    platform: '#ff90d8',
-    floorSpike: '#ff5ca8',
-    ceilSpike: '#d1b3ff',
-    portal: '#ff90d8',
-    platformChance: 0.8,
-    floorSpikeMin: 6,
-    floorSpikeMax: 10,
-    ceilingMin: 5,
-    ceilingMax: 8,
-    speedMultiplier: 1.3,
-    portalY: 250,
-    portalLabel: 'C',
-  },
-  {
-    name: 'Stage 4',
-    bgTop: '#1d1a2e',
-    bgMid: '#2a2a48',
-    bgBottom: '#090d18',
-    ground: '#171821',
-    ceiling: '#22263b',
-    platform: '#ffd84d',
-    floorSpike: '#ff5f5f',
-    ceilSpike: '#ffd84d',
-    portal: '#ffd84d',
-    platformChance: 0.9,
-    floorSpikeMin: 7,
-    floorSpikeMax: 12,
-    ceilingMin: 6,
-    ceilingMax: 9,
-    speedMultiplier: 1.5,
-    portalY: 220,
-    portalLabel: 'D',
-  },
-];
-
 const state = {
   status: 'ready',
   obstacles: [],
   items: [],
+  scorePopups: [],
   spawnTimer: 0.8,
   score: 0,
   speedProgress: 0,
@@ -123,134 +46,10 @@ const state = {
   stageIndex: 0,
   portal: null,
   portalCooldown: 15,
+  highScores: loadHighScores(),
 };
-
-const audio = {
-  ctx: null,
-  master: null,
-  musicGain: null,
-  nextBeatAt: 0,
-  step: 0,
-  musicStarted: false,
-};
-
-const musicPattern = [220, 262, 330, 392, 440, 392, 330, 262, 220, 196, 247, 294];
-
-function ensureAudio() {
-  if (!audio.ctx) {
-    const AudioCtor = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtor) {
-      return;
-    }
-
-    audio.ctx = new AudioCtor();
-    audio.master = audio.ctx.createGain();
-    audio.master.gain.value = 0.12;
-    audio.master.connect(audio.ctx.destination);
-    audio.musicGain = audio.ctx.createGain();
-    audio.musicGain.gain.value = 2.5;
-    audio.musicGain.connect(audio.master);
-  }
-
-  if (audio.ctx.state === 'suspended') {
-    audio.ctx.resume();
-  }
-}
-
-function playTone(frequency, duration, type = 'sine', volume = 0.08, slideTo = null, output = audio.master) {
-  if (!audio.ctx || !audio.master) {
-    return;
-  }
-
-  const now = audio.ctx.currentTime;
-  const oscillator = audio.ctx.createOscillator();
-  const gainNode = audio.ctx.createGain();
-
-  oscillator.type = type;
-  oscillator.frequency.setValueAtTime(frequency, now);
-
-  if (slideTo) {
-    oscillator.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
-  }
-
-  gainNode.gain.setValueAtTime(0.0001, now);
-  gainNode.gain.exponentialRampToValueAtTime(volume, now + 0.01);
-  gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-  oscillator.connect(gainNode);
-  gainNode.connect(output);
-
-  oscillator.start(now);
-  oscillator.stop(now + duration + 0.02);
-}
-
-function playKick() {
-  playTone(42, 0.18, 'sine', 0.18, 24, audio.musicGain);
-  playTone(68, 0.08, 'triangle', 0.04, 58, audio.musicGain);
-}
-
-function playBass() {
-  ensureAudio();
-  if (!audio.ctx || !audio.musicGain) {
-    return;
-  }
-
-  const note = musicPattern[(audio.step + 2) % musicPattern.length] * 0.5;
-  playTone(note, 0.22, 'sawtooth', 0.09, note * 0.7, audio.musicGain);
-}
-
-function playJumpSound() {
-  ensureAudio();
-  if (!audio.ctx || !audio.master) {
-    return;
-  }
-
-  playTone(520, 0.12, 'square', 0.12, 200);
-  playTone(680, 0.08, 'triangle', 0.05, 340);
-}
-
-function startMusic() {
-  ensureAudio();
-  if (!audio.ctx || !audio.master || audio.musicStarted) {
-    return;
-  }
-
-  audio.musicStarted = true;
-  audio.nextBeatAt = audio.ctx.currentTime + 0.08;
-  audio.step = 0;
-}
-
-function updateMusic() {
-  if (!audio.ctx || !audio.musicGain || !audio.musicStarted || state.status !== 'playing') {
-    return;
-  }
-
-  const beatDuration = 0.23;
-
-  while (audio.nextBeatAt < audio.ctx.currentTime + 0.2) {
-    const note = musicPattern[audio.step % musicPattern.length];
-    playTone(note, 0.12, 'triangle', 0.05, null, audio.musicGain);
-
-    if (audio.step % 2 === 1) {
-      playTone(note * 1.5, 0.08, 'square', 0.025, note * 1.2, audio.musicGain);
-    }
-
-    if (audio.step % 2 === 0) {
-      playKick();
-    }
-
-    if (audio.step % 4 === 0 || audio.step % 4 === 2) {
-      playBass();
-    }
-
-    if (audio.step % 4 === 0) {
-      playTone(note * 0.5, 0.2, 'sine', 0.06, note * 0.25, audio.musicGain);
-    }
-
-    audio.nextBeatAt += beatDuration;
-    audio.step += 1;
-  }
-}
+const { audio, playJumpSound, startMusic, updateMusic } = createAudio(state);
+const { draw } = createRenderer({ canvas, ctx, state, player, getCurrentStage, groundY: config.groundY });
 
 function resetPlayer() {
   player.x = 120;
@@ -271,9 +70,15 @@ function updateHud() {
 function setOverlay(message, buttonText, mode = 'default') {
   overlay.classList.add('visible');
   overlay.classList.toggle('clear-screen', mode === 'clear');
-  overlayTitle.textContent = mode === 'clear' ? 'ALL STAGES CLEAR!' : 'GEOMETRY DASH';
+  overlay.classList.toggle('record-screen', mode === 'record');
+  overlay.classList.remove('leaderboard-mode');
+  leaderboardPanel.hidden = true;
+  overlayTitle.textContent = mode === 'clear'
+    ? 'ALL STAGES CLEAR!'
+    : mode === 'record' ? 'TOP 3 RECORD!' : 'GEOMETRY DASH';
   overlayMessage.textContent = message;
   playBtn.textContent = buttonText;
+  leaderboardBtn.hidden = false;
 }
 
 function hideOverlay() {
@@ -281,13 +86,29 @@ function hideOverlay() {
 }
 
 function getCurrentStage() {
-  return stageConfigs[state.stageIndex] || stageConfigs[0];
+  return STAGES[state.stageIndex] || STAGES[0];
+}
+
+function showLeaderboard() {
+  renderHighScores(leaderboardList, state.highScores);
+  overlay.classList.add('visible', 'leaderboard-mode');
+  leaderboardPanel.hidden = false;
+}
+
+function saveRunScore() {
+  const result = recordHighScore(state.score);
+  state.highScores = result.scores;
+  state.best = Math.max(state.best, state.highScores[0]?.score || 0);
+  localStorage.setItem('geometryDashBest', String(state.best));
+  updateHud();
+  return result.rank;
 }
 
 function loadStage(index) {
   state.stageIndex = index;
   state.obstacles = [];
   state.items = [];
+  state.scorePopups = [];
   state.speedProgress = 0;
   state.portal = null;
   state.portalCooldown = 15;
@@ -308,7 +129,7 @@ function startGame() {
 }
 
 function nextStage() {
-  if (state.stageIndex < stageConfigs.length - 1) {
+  if (state.stageIndex < STAGES.length - 1) {
     state.stageIndex += 1;
     loadStage(state.stageIndex);
     state.status = 'playing';
@@ -316,8 +137,7 @@ function nextStage() {
   }
 
   state.status = 'cleared';
-  state.best = Math.max(state.best, Math.floor(state.score));
-  localStorage.setItem('geometryDashBest', String(state.best));
+  saveRunScore();
   audio.musicStarted = false;
   updateHud();
   setOverlay(`You cleared all 4 stages! Score ${Math.floor(state.score)}`, 'Play Again', 'clear');
@@ -325,11 +145,13 @@ function nextStage() {
 
 function gameOver() {
   state.status = 'gameover';
-  state.best = Math.max(state.best, Math.floor(state.score));
-  localStorage.setItem('geometryDashBest', String(state.best));
+  const rank = saveRunScore();
   audio.musicStarted = false;
   updateHud();
-  setOverlay(`Game Over — Score ${Math.floor(state.score)}`, 'Restart');
+  const message = rank && rank <= 3
+    ? `${rank}位入賞！  Score ${Math.floor(state.score)}`
+    : `Game Over — Score ${Math.floor(state.score)}`;
+  setOverlay(message, 'Restart', rank && rank <= 3 ? 'record' : 'default');
 }
 
 function jump() {
@@ -416,7 +238,7 @@ function spawnObstacle() {
     });
   }
 
-  state.spawnTimer = randomBetween(0.25, 0.45) / stage.speedMultiplier;
+  state.spawnTimer = randomBetween(stage.spawnMin, stage.spawnMax) / stage.speedMultiplier;
 }
 
 function rectsIntersect(a, b) {
@@ -468,6 +290,12 @@ function update(dt) {
   player.shrinkTimer = Math.max(0, player.shrinkTimer - dt);
   player.starTimer = Math.max(0, player.starTimer - dt);
   player.slowTimer = Math.max(0, player.slowTimer - dt);
+  for (let i = state.scorePopups.length - 1; i >= 0; i -= 1) {
+    const popup = state.scorePopups[i];
+    popup.y -= 42 * dt;
+    popup.timeLeft -= dt;
+    if (popup.timeLeft <= 0) state.scorePopups.splice(i, 1);
+  }
 
   player.vy += config.gravity * dt;
   player.y += player.vy * dt;
@@ -538,6 +366,15 @@ function update(dt) {
 
     const distance = Math.hypot(player.x + player.w / 2 - (item.x + item.r), player.y + player.h / 2 - (item.y + item.r));
     if (distance < 50) {
+      const points = getItemPoints(item.type);
+      state.score += points;
+      state.scorePopups.push({
+        x: player.x + player.w / 2,
+        y: player.y - 12,
+        points,
+        timeLeft: 1.15,
+        duration: 1.15,
+      });
       if (item.type === 'speed') {
         player.boostTimer = 5;
       } else if (item.type === 'shrink') {
@@ -558,209 +395,6 @@ function update(dt) {
   updateHud();
 }
 
-function drawBackground() {
-  const stage = getCurrentStage();
-  const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  sky.addColorStop(0, stage.bgTop);
-  sky.addColorStop(0.5, stage.bgMid);
-  sky.addColorStop(1, stage.bgBottom);
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  for (let i = 0; i < 70; i += 1) {
-    const x = (i * 79 + (state.score * 3)) % (canvas.width + 20);
-    const y = (i * 53) % (canvas.height * 0.6);
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.fillRect(x, y, 2, 2);
-  }
-
-  ctx.fillStyle = stage.ground;
-  ctx.fillRect(0, config.groundY, canvas.width, canvas.height - config.groundY);
-
-  ctx.fillStyle = stage.ceiling;
-  ctx.fillRect(0, 0, canvas.width, 32);
-
-  ctx.strokeStyle = stage.portal;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(0, config.groundY);
-  ctx.lineTo(canvas.width, config.groundY);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(0, 32);
-  ctx.lineTo(canvas.width, 32);
-  ctx.stroke();
-}
-
-function drawPlayer() {
-  const sizeW = player.starTimer > 0 ? player.w + 8 : player.w;
-  const sizeH = player.starTimer > 0 ? player.h + 8 : player.h;
-  const drawX = player.x + (player.w - sizeW) / 2;
-  const drawY = player.y + (player.h - sizeH) / 2;
-
-  const glow = ctx.createRadialGradient(
-    drawX + sizeW * 0.5,
-    drawY + sizeH * 0.45,
-    4,
-    drawX + sizeW * 0.5,
-    drawY + sizeH * 0.5,
-    30,
-  );
-  glow.addColorStop(0, player.starTimer > 0 ? '#dffbff' : '#fff4a9');
-  glow.addColorStop(1, 'rgba(255, 216, 77, 0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(drawX - 12, drawY - 12, sizeW + 24, sizeH + 24);
-
-  ctx.fillStyle = player.starTimer > 0 ? '#7df9ff' : '#ffd84d';
-  ctx.fillRect(drawX, drawY, sizeW, sizeH);
-
-  ctx.fillStyle = '#0b1020';
-  ctx.fillRect(drawX + 7, drawY + 7, 5, 5);
-  ctx.fillRect(drawX + 18, drawY + 7, 5, 5);
-  ctx.fillStyle = '#ff4db8';
-  ctx.fillRect(drawX + 8, drawY + 18, 14, 4);
-}
-
-function drawPlatform(obstacle) {
-  ctx.fillStyle = getCurrentStage().platform;
-  ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
-  ctx.fillStyle = 'rgba(0,0,0,0.18)';
-  ctx.fillRect(obstacle.x + 8, obstacle.y + 6, obstacle.w - 16, 4);
-}
-
-function drawSpike(obstacle) {
-  const spikeCount = obstacle.count || 3;
-  const step = obstacle.w / spikeCount;
-  ctx.fillStyle = getCurrentStage().floorSpike;
-
-  for (let i = 0; i < spikeCount; i += 1) {
-    const x = obstacle.x + i * step;
-    ctx.beginPath();
-    ctx.moveTo(x, obstacle.y + obstacle.h);
-    ctx.lineTo(x + step / 2, obstacle.y);
-    ctx.lineTo(x + step, obstacle.y + obstacle.h);
-    ctx.closePath();
-    ctx.fill();
-  }
-}
-
-function drawCeilingSpike(obstacle) {
-  const spikeCount = obstacle.count || 3;
-  const step = obstacle.w / spikeCount;
-  ctx.fillStyle = getCurrentStage().ceilSpike;
-
-  for (let i = 0; i < spikeCount; i += 1) {
-    const x = obstacle.x + i * step;
-    ctx.beginPath();
-    ctx.moveTo(x, obstacle.y);
-    ctx.lineTo(x + step / 2, obstacle.y + obstacle.h);
-    ctx.lineTo(x + step, obstacle.y);
-    ctx.closePath();
-    ctx.fill();
-  }
-}
-
-function drawObstacle(obstacle) {
-  if (obstacle.type === 'platform') {
-    drawPlatform(obstacle);
-  } else if (obstacle.type === 'ceilingSpike') {
-    drawCeilingSpike(obstacle);
-  } else {
-    drawSpike(obstacle);
-  }
-}
-
-function drawItem(item) {
-  ctx.save();
-  ctx.translate(item.x + item.r, item.y + item.r + Math.sin(item.bob) * 4);
-
-  if (item.type === 'speed') {
-    ctx.fillStyle = '#ffd84d';
-    ctx.fillRect(-30, -30, 60, 60);
-    ctx.fillStyle = '#0b1020';
-    ctx.fillRect(-10, -24, 20, 48);
-    ctx.fillRect(-24, -10, 48, 20);
-  } else if (item.type === 'shrink') {
-    ctx.fillStyle = '#ff4db8';
-    ctx.beginPath();
-    ctx.arc(0, 0, 32, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(-10, -24, 20, 48);
-  } else if (item.type === 'slow') {
-    ctx.fillStyle = '#8dd5ff';
-    ctx.fillRect(-30, -30, 60, 60);
-    ctx.fillStyle = '#0b1020';
-    ctx.fillRect(-18, -18, 36, 36);
-    ctx.fillStyle = '#8dd5ff';
-    ctx.fillRect(-8, -22, 16, 44);
-  } else {
-    ctx.fillStyle = '#7df9ff';
-    ctx.beginPath();
-    for (let i = 0; i < 5; i += 1) {
-      const angle = (Math.PI / 180) * (i * 72 - 90);
-      const outerX = Math.cos(angle) * 36;
-      const outerY = Math.sin(angle) * 36;
-      const innerX = Math.cos(angle + Math.PI / 5) * 15;
-      const innerY = Math.sin(angle + Math.PI / 5) * 15;
-      if (i === 0) {
-        ctx.moveTo(outerX, outerY);
-      } else {
-        ctx.lineTo(outerX, outerY);
-      }
-      ctx.lineTo(innerX, innerY);
-    }
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  ctx.restore();
-}
-
-function drawPortal() {
-  if (!state.portal) {
-    return;
-  }
-
-  const stage = getCurrentStage();
-  const portalX = state.portal.x;
-  const portalY = state.portal.y;
-
-  ctx.save();
-  ctx.translate(portalX + state.portal.w / 2, portalY + state.portal.h / 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.fillRect(-30, -40, 60, 80);
-
-  ctx.strokeStyle = stage.portal;
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 24, 40, 0, 0, Math.PI * 2);
-  ctx.stroke();
-
-  ctx.fillStyle = stage.portal;
-  ctx.fillRect(-8, -35, 16, 70);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 24px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText(stage.portalLabel, 0, 8);
-  ctx.restore();
-}
-
-function draw() {
-  drawBackground();
-
-  for (const obstacle of state.obstacles) {
-    drawObstacle(obstacle);
-  }
-
-  for (const item of state.items) {
-    drawItem(item);
-  }
-
-  drawPortal();
-  drawPlayer();
-}
-
 function loop(timestamp) {
   if (!state.lastTime) {
     state.lastTime = timestamp;
@@ -775,6 +409,10 @@ function loop(timestamp) {
 }
 
 function handleAction() {
+  if (overlay.classList.contains('leaderboard-mode')) {
+    return;
+  }
+
   if (state.status === 'ready' || state.status === 'gameover' || state.status === 'cleared') {
     startGame();
   }
@@ -795,6 +433,12 @@ canvas.addEventListener('pointerdown', () => {
 
 playBtn.addEventListener('click', () => {
   handleAction();
+});
+
+leaderboardBtn.addEventListener('click', showLeaderboard);
+leaderboardBackBtn.addEventListener('click', () => {
+  leaderboardPanel.hidden = true;
+  overlay.classList.remove('leaderboard-mode');
 });
 
 resetPlayer();

@@ -16,14 +16,23 @@
       <canvas id="gameCanvas" width="960" height="540" aria-label="Geometry Dash style mini game"></canvas>
 
       <div id="overlay" class="overlay visible">
-        <div class="panel">
+        <div id="mainPanel" class="panel">
           <h1 id="overlayTitle">GEOMETRY DASH</h1>
           <p id="overlayMessage">Press Space or click to start</p>
-          <button id="playBtn" type="button">Start</button>
+          <div class="panel-actions">
+            <button id="playBtn" type="button">Start</button>
+            <button id="leaderboardBtn" class="secondary-button" type="button">TOP 10</button>
+          </div>
         </div>
+
+        <section id="leaderboardPanel" class="panel leaderboard-panel" aria-labelledby="leaderboardTitle" hidden>
+          <h1 id="leaderboardTitle">TOP 10</h1>
+          <ol id="leaderboardList" class="leaderboard-list"></ol>
+          <button id="leaderboardBackBtn" class="secondary-button" type="button">戻る</button>
+        </section>
       </div>
     </div>
 
-    <script src="game.js"></script>
+    <script type="module" src="game.js"></script>
   </body>
 </html>
