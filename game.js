@@ -37,7 +37,7 @@ const player = {
 
 const state = {
   status: 'ready',
-  lives: 10,
+  lives: 3,
   obstacles: [],
   enemies: [],
   items: [],
@@ -134,7 +134,7 @@ function startGame() {
   state.status = 'playing';
   state.stageIndex = 0;
   state.score = 0;
-  state.lives = 10;
+  state.lives = 3;
   state.best = Number(localStorage.getItem('geometryDashBest') || 0);
   loadStage(0);
   hideOverlay();
@@ -199,10 +199,20 @@ function continueFromCheckpoint() {
     return;
   }
 
-  const checkpointStage = state.stageIndex;
   state.best = Math.max(state.best, Math.floor(state.score));
   localStorage.setItem('geometryDashBest', String(state.best));
-  loadStage(checkpointStage);
+  state.obstacles = [];
+  state.enemies = [];
+  state.items = [];
+  state.spawnTimer = 0.7;
+  state.scorePopups = [];
+  player.y = Math.min(Math.max(player.y, 32), config.groundY - player.h);
+  player.vy = 0;
+  player.jumpCooldown = 0;
+  player.boostTimer = 0;
+  player.shrinkTimer = 0;
+  player.starTimer = 0;
+  player.slowTimer = 0;
   state.introGrace = 0;
   state.deathParticles = [];
   state.enemyParticles = [];
@@ -288,11 +298,20 @@ function spawnObstacle() {
     state.enemies.push(createEnemy({ canvasWidth: canvas.width, groundY: config.groundY, randomBetween }));
   }
 
-  if (Math.random() < 0.6) {
-    const itemTypes = ['speed', 'shrink', 'star', 'slow', '1up'];
+  const itemRoll = Math.random();
+  if (itemRoll < 0.6) {
+    const itemTypes = ['speed', 'shrink', 'star', 'slow'];
     const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
     state.items.push({
       type: itemType,
+      x: canvas.width + 80,
+      y: randomBetween(120, config.groundY - 80),
+      r: 40,
+      bob: Math.random() * Math.PI * 2,
+    });
+  } else if (itemRoll < 0.625) {
+    state.items.push({
+      type: '1up',
       x: canvas.width + 80,
       y: randomBetween(120, config.groundY - 80),
       r: 40,

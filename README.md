@@ -6,13 +6,13 @@ A fast-paced browser platform game inspired by Geometry Dash, with four themed s
 
 - Press Space, W, or the Up arrow to jump.
 - Jump over floor spikes and avoid ceiling spikes.
-- Avoid moving enemies; after a death burst, continue from the current stage checkpoint with the score preserved.
-- Start with 10 lives. Each death halves the score and uses one life; the run ends when lives reach zero.
+- Avoid moving enemies; after a death burst, continue from the same position with the score penalty applied.
+- Start with 3 lives. Each death halves the score and uses one life; the run ends when lives reach zero.
 - Star power blinks and grants three seconds of protection from enemies and spikes.
 - While star-powered, hitting an enemy destroys it, triggers an explosion, and awards 100 points.
 - Collect items for temporary speed, slow, shrink, or star effects.
 - Earn 500 points for a speed-up item and 100 points for every other item. Pickup points float above the player.
-- Collect a 1-UP item for an extra life.
+- Collect a rare 1-UP item for an extra life.
 - Reach each randomly positioned, enlarged portal to advance. The first portal appears after 10 seconds; missed portals return every 3 seconds.
 - Entering a portal awards 1,000 points.
 - Stage transitions show a three-second stage-number countdown while the BGM continues with audio cues.
