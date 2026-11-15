@@ -204,6 +204,19 @@ export function createRenderer({ canvas, ctx, state, player, getCurrentStage, gr
       ctx.fillRect(-18, -18, 36, 36);
       ctx.fillStyle = '#8dd5ff';
       ctx.fillRect(-8, -22, 16, 44);
+    } else if (item.type === '1up') {
+      ctx.shadowColor = '#71f7a2';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = '#71f7a2';
+      ctx.beginPath();
+      ctx.arc(0, 0, 34, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#0b1020';
+      ctx.font = 'bold 22px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('1UP', 0, 1);
     } else {
       ctx.fillStyle = '#7df9ff';
       ctx.beginPath();
@@ -252,9 +265,9 @@ export function createRenderer({ canvas, ctx, state, player, getCurrentStage, gr
       ctx.font = 'bold 24px Arial';
       ctx.lineWidth = 5;
       ctx.strokeStyle = 'rgba(7, 13, 29, 0.9)';
-      ctx.strokeText(`+${popup.points}`, popup.x, popup.y);
-      ctx.fillStyle = popup.points === 500 ? '#ffd84d' : '#71f7a2';
-      ctx.fillText(`+${popup.points}`, popup.x, popup.y);
+      ctx.strokeText(popup.label || `+${popup.points}`, popup.x, popup.y);
+      ctx.fillStyle = popup.points < 0 ? '#ff5f5f' : popup.points === 500 ? '#ffd84d' : '#71f7a2';
+      ctx.fillText(popup.label || `+${popup.points}`, popup.x, popup.y);
       ctx.restore();
     }
   }

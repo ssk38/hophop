@@ -10,6 +10,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const bestEl = document.getElementById('best');
+const livesEl = document.getElementById('lives');
 const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlayTitle');
 const overlayMessage = document.getElementById('overlayMessage');
@@ -36,6 +37,7 @@ const player = {
 
 const state = {
   status: 'ready',
+  lives: 10,
   obstacles: [],
   enemies: [],
   items: [],
@@ -72,6 +74,7 @@ function resetPlayer() {
 function updateHud() {
   scoreEl.textContent = `SCORE ${Math.floor(state.score)}`;
   bestEl.textContent = `BEST ${Math.floor(state.best)}`;
+  livesEl.textContent = `LIVES ${state.lives}`;
 }
 
 function setOverlay(message, buttonText, mode = 'default') {
@@ -131,6 +134,7 @@ function startGame() {
   state.status = 'playing';
   state.stageIndex = 0;
   state.score = 0;
+  state.lives = 10;
   state.best = Number(localStorage.getItem('geometryDashBest') || 0);
   loadStage(0);
   hideOverlay();
@@ -159,19 +163,42 @@ function nextStage() {
   setOverlay(`You cleared all 4 stages! Score ${Math.floor(state.score)}`, 'Play Again', 'clear');
 }
 
-function createScorePopup(points, x = player.x + player.w / 2, y = player.y - 12) {
-  return { x, y, points, timeLeft: 1.15, duration: 1.15 };
+function createScorePopup(points, x = player.x + player.w / 2, y = player.y - 12, label = `+${points}`) {
+  return { x, y, points, label, timeLeft: 1.15, duration: 1.15 };
 }
 
 function gameOver() {
   if (state.status !== 'playing') return;
+  const scoreBeforePenalty = Math.floor(state.score);
+  state.score = Math.floor(state.score / 2);
+  state.lives = Math.max(0, state.lives - 1);
+  const scoreLost = scoreBeforePenalty - Math.floor(state.score);
+  if (scoreLost > 0) {
+    state.scorePopups.push(createScorePopup(-scoreLost, player.x + player.w / 2, player.y - 12, `-${scoreLost}`));
+  }
   state.status = 'dying';
   state.deathTimer = 0.85;
   state.deathParticles = createDeathBurst(player);
   player.starTimer = 0;
+  updateHud();
+}
+
+function finishGameOver() {
+  state.status = 'gameover';
+  const rank = saveRunScore();
+  audio.musicStarted = false;
+  const message = rank && rank <= 3
+    ? `${rank}位入賞！  Score ${Math.floor(state.score)}`
+    : `Game Over — Score ${Math.floor(state.score)}`;
+  setOverlay(message, 'Restart', rank && rank <= 3 ? 'record' : 'default');
 }
 
 function continueFromCheckpoint() {
+  if (state.lives <= 0) {
+    finishGameOver();
+    return;
+  }
+
   const checkpointStage = state.stageIndex;
   state.best = Math.max(state.best, Math.floor(state.score));
   localStorage.setItem('geometryDashBest', String(state.best));
@@ -262,7 +289,7 @@ function spawnObstacle() {
   }
 
   if (Math.random() < 0.6) {
-    const itemTypes = ['speed', 'shrink', 'star', 'slow'];
+    const itemTypes = ['speed', 'shrink', 'star', 'slow', '1up'];
     const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
     state.items.push({
       type: itemType,
@@ -442,7 +469,8 @@ function update(dt) {
     if (distance < 50) {
       const points = getItemPoints(item.type);
       state.score += points;
-      state.scorePopups.push(createScorePopup(points));
+      const pickupLabel = item.type === '1up' ? `+${points}  +1 LIFE` : undefined;
+      state.scorePopups.push(createScorePopup(points, player.x + player.w / 2, player.y - 12, pickupLabel));
       if (item.type === 'speed') {
         player.boostTimer = 5;
       } else if (item.type === 'shrink') {
@@ -451,6 +479,8 @@ function update(dt) {
         player.starTimer = 3;
       } else if (item.type === 'slow') {
         player.slowTimer = 4;
+      } else if (item.type === '1up') {
+        state.lives += 1;
       }
       state.items.splice(i, 1);
     } else if (item.x + item.r < -20) {

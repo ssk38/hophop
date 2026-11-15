@@ -3,6 +3,7 @@ const ITEM_POINTS = Object.freeze({
   shrink: 100,
   star: 100,
   slow: 100,
+  '1up': 100,
 });
 
 export const PORTAL_POINTS = 1000;
