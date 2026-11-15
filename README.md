@@ -2,6 +2,12 @@
 
 A fast-paced browser platform game inspired by Geometry Dash, with four themed stages.
 
+## Live demo
+
+Play the published version here:
+
+https://ssk38.github.io/hophop/
+
 ## How to play
 
 - Press Space, W, or the Up arrow to jump.
